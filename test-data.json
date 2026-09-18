@@ -1,0 +1,14 @@
+{
+  "cases": [
+    {
+      "taskName": "Implement authentication",
+      "expectedColumn": "To do",
+      "tags": ["Feature", "High Priority"]
+    },
+    {
+      "taskName": "Fix navigation bug",
+      "expectedColumn": "In progress",
+      "tags": ["Bug"]
+    }
+  ]
+}
