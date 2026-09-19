@@ -1,57 +1,87 @@
-import { test, expect, Page, BrowserContext } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import testCases from '../test-data.json';
 
-const BASE_URL = 'http://create-asana-like-pr-39y5.bolt.host/';
-const CREDENTIALS = { email: 'admin', password: 'password123' };
+const BASE_URL = 'https://create-asana-like-pr-39y5.bolt.host/';
 
-test.describe('Asana Demo App Automated Test Suite', () => {
-  let context: BrowserContext;
-  let page: Page;
+const CREDENTIALS = {
+  username: 'admin',
+  password: 'password123',
+};
 
-  test.beforeAll(async ({ browser }) => {
-    context = await browser.newContext({ ignoreHTTPSErrors: true });
-    page = await context.newPage();
+type TestCase = {
+  id: number;
+  project: string;
+  taskName: string;
+  column: string;
+  tags: string[];
+};
 
-    // Navigate immediately without waiting for full DOM parsing overhead
-    await page.goto(BASE_URL, { waitUntil: 'commit', timeout: 0 });
-    
-    // Wait explicitly for the login form to be visible on screen
-    const emailInput = page.locator('input[type="email"], input[name="username"], input[name="email"], input').first();
-    await emailInput.waitFor({ state: 'visible', timeout: 60000 });
+const scenarios: TestCase[] = testCases;
 
-    // Perform Login
-    await emailInput.fill(CREDENTIALS.email);
-    await page.locator('input[type="password"]').first().fill(CREDENTIALS.password);
-    await page.locator('button').filter({ hasText: /sign in|log in|login|submit/i }).first().click();
-    
-    // Wait for main dashboard view
-    await page.waitForLoadState('domcontentloaded');
-  }, 90000);
+test.describe('Asana Demo App - Data-Driven Test Suite', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto(BASE_URL);
 
-  test.afterAll(async () => {
-    await context.close();
+    await expect(page.locator('#username')).toBeVisible();
+    await page.locator('#username').fill(CREDENTIALS.username);
+
+    await expect(page.locator('#password')).toBeVisible();
+    await page.locator('#password').fill(CREDENTIALS.password);
+
+    await page.getByRole('button', { name: 'Sign in' }).click();
+
+    await expect(
+      page.getByText('Web Application', { exact: true }).first()
+    ).toBeVisible();
   });
 
-  for (const tc of testCases) {
-    test(`Test Case ${tc.id}: Verify "${tc.taskName}" in "${tc.project}" under "${tc.column}"`, async () => {
-      // 1. Switch Project Tab
-      const projectBtn = page.getByRole('button', { name: tc.project }).or(page.getByText(tc.project)).first();
-      await projectBtn.click();
+  for (const scenario of scenarios) {
+    test(
+      'TC' +
+        scenario.id +
+        ': "' +
+        scenario.taskName +
+        '" is in ' +
+        scenario.project +
+        ' -> ' +
+        scenario.column,
+      async ({ page }) => {
+        const project = page
+          .getByRole('button', { name: scenario.project })
+          .or(page.getByText(scenario.project, { exact: true }))
+          .first();
 
-      // 2. Locate Column Header
-      const columnHeader = page.getByRole('heading', { name: tc.column }).or(page.getByText(tc.column)).first();
-      await expect(columnHeader).toBeVisible();
+        await expect(project).toBeVisible();
+        await project.click();
 
-      // 3. Scope Task Card strictly inside the Column Container
-      const columnContainer = page.locator('div, section, article').filter({ has: columnHeader }).last();
-      const taskCard = columnContainer.locator('div, article').filter({ hasText: tc.taskName }).first();
-      await expect(taskCard).toBeVisible();
+        const columnHeader = page
+          .getByRole('heading', { name: scenario.column })
+          .or(page.getByText(scenario.column, { exact: true }))
+          .first();
 
-      // 4. Verify Tags inside the Task Card
-      for (const tag of tc.tags) {
-        const tagElement = taskCard.locator('span, div, p').filter({ hasText: new RegExp(`^${tag}$`, 'i') }).first();
-        await expect(tagElement).toBeVisible();
+        await expect(columnHeader).toBeVisible();
+
+        const columnContainer = page
+          .locator('div, section, article')
+          .filter({ has: columnHeader })
+          .last();
+
+        const taskCard = columnContainer
+          .locator('div, article')
+          .filter({ hasText: scenario.taskName })
+          .first();
+
+        await expect(taskCard).toBeVisible();
+
+        for (const tag of scenario.tags) {
+          const tagElement = taskCard
+            .locator('span, div, p')
+            .filter({ hasText: tag })
+            .first();
+
+          await expect(tagElement).toBeVisible();
+        }
       }
-    });
+    );
   }
 });
