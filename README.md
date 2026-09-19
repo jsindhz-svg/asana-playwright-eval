@@ -4,6 +4,10 @@ A data-driven end-to-end test suite built with **Playwright and TypeScript** to 
 
 The suite covers all six required scenarios across the **Web Application** and **Mobile Application** projects, validating project, task, column, and tag information.
 
+## Demo Video
+
+[Watch the 2-3 minute test execution and code walkthrough](INSERT_YOUR_LOOM_OR_VIDEO_LINK_HERE)
+
 ## Tech Stack
 
 * Playwright
@@ -17,8 +21,9 @@ The suite covers all six required scenarios across the **Web Application** and *
 ```text
 .
 ├── tests/
+│   ├── data/
+│   │   └── testCases.json
 │   └── asana.spec.ts
-├── test-data.json
 ├── playwright.config.ts
 ├── tsconfig.json
 ├── package.json
@@ -40,19 +45,19 @@ The test suite validates the following scenarios:
 
 Each scenario verifies:
 
-1. Successful authentication
-2. Navigation to the expected project
-3. Presence of the expected column
-4. Presence of the expected task within that column
-5. Presence of every expected tag associated with the task
+* Successful authentication
+* Navigation to the expected project
+* Presence of the expected column
+* Presence of the expected task within that column
+* Presence of every expected tag associated with the task
 
 ## Data-Driven Design
 
-Test scenarios are maintained separately in `test-data.json`.
+Test scenarios are maintained separately in `tests/data/testCases.json`.
 
 The Playwright test implementation dynamically generates a test for each scenario in the JSON data. This keeps the test logic reusable and minimizes duplication.
 
-To add another scenario, a new test-data object can be added to `test-data.json` without duplicating the test implementation.
+To add another scenario, a new test-data object can be added to `tests/data/testCases.json` without duplicating the test implementation.
 
 Example:
 
@@ -60,7 +65,7 @@ Example:
 {
   "id": 7,
   "project": "Web Application",
-  "taskName": "Example task",
+  "task": "Example task",
   "column": "To Do",
   "tags": ["Feature"]
 }
@@ -79,7 +84,7 @@ Clone the repository and install dependencies:
 npm install
 ```
 
-Install the Playwright browser:
+Install the Playwright browsers:
 
 ```bash
 npx playwright install
@@ -140,8 +145,6 @@ Authentication is handled in a shared `beforeEach` hook so that each scenario st
 
 The test suite is designed to keep test data and test logic separate:
 
-* `test-data.json` contains scenario-specific data.
+* `tests/data/testCases.json` contains scenario-specific data.
 * `tests/asana.spec.ts` contains reusable automation logic.
 * `playwright.config.ts` contains test execution and reporting configuration.
-
-This structure makes the suite easier to extend and maintain as additional scenarios are introduced.

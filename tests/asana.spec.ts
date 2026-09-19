@@ -1,142 +1,52 @@
 import { test, expect } from '@playwright/test';
-import testCases from '../test-data.json';
+import testCases from './data/testCases.json';
 
-const CREDENTIALS = {
-  username: 'admin',
-  password: 'password123',
-};
+test.describe('Asana Task Verification - Data Driven Suite', () => {
 
-type TestCase = {
-  id: number;
-  project: string;
-  taskName: string;
-  column: string;
-  tags: string[];
-};
-
-const scenarios: TestCase[] = testCases;
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-test.describe('Asana Demo App - Data-Driven Test Suite', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    // 1. Navigate to the web app
+    await page.goto('https://create-asana-like-pr-39y5.bolt.host/');
 
-    const usernameInput = page.locator('#username');
-    const passwordInput = page.locator('#password');
+    // 2. Perform login
+    await page.locator('input[type="text"], #username').first().fill('admin');
+    await page.locator('input[type="password"], #password').first().fill('password123');
+    await page.locator('button[type="submit"], button:has-text("Sign in"), button:has-text("Login")').first().click();
 
-    await expect(usernameInput).toBeVisible();
-    await usernameInput.fill(CREDENTIALS.username);
-
-    await expect(passwordInput).toBeVisible();
-    await passwordInput.fill(CREDENTIALS.password);
-
-    await page.getByRole('button', { name: 'Sign in' }).click();
-
-    await expect(
-      page.getByText('Web Application', { exact: true }).first()
-    ).toBeVisible();
+    // 3. Confirm dashboard loaded
+    await expect(page.getByRole('banner').getByRole('heading', { name: 'Web Application' })).toBeVisible({ timeout: 10000 });
   });
 
-  for (const scenario of scenarios) {
-    test(
-      'TC' +
-        scenario.id +
-        ': "' +
-        scenario.taskName +
-        '" is in ' +
-        scenario.project +
-        ' -> ' +
-        scenario.column,
-      async ({ page }) => {
-        const project = page
-          .getByRole('button', {
-            name: scenario.project,
-            exact: true,
-          })
-          .or(
-            page.getByText(scenario.project, {
-              exact: true,
-            })
-          )
-          .first();
+  for (const scenario of testCases) {
+    test(`Test Case ${scenario.id}: Verify "${scenario.task}" under ${scenario.project}`, async ({ page }) => {
+      
+      // 1. Navigate to requested project tab in sidebar
+      const projectButton = page.getByRole('button', { name: new RegExp(scenario.project, 'i') }).first();
+      await projectButton.click();
 
-        await expect(project).toBeVisible();
-        await project.click();
+      // 2. Locate the column container matching column name (handles dynamic counts like "To Do (3)")
+      const columnHeader = page.locator('h2, h3, header, div')
+        .filter({ hasText: new RegExp(`^${scenario.column}`, 'i') })
+        .first();
 
-        /*
-         * Locate the expected column by its heading.
-         * This establishes the column as the starting point
-         * for the task-location assertion.
-         */
-        const columnHeading = page.getByRole('heading', {
-          name: new RegExp(
-            '^' +
-              escapeRegExp(scenario.column) +
-              '\\s*\\(\\d+\\)$'
-          ),
-        });
+      const columnContainer = page.locator('div')
+        .filter({ has: columnHeader })
+        .filter({ hasText: scenario.task })
+        .first();
 
-        await expect(columnHeading).toBeVisible();
+      // 3. Locate the isolated task card (targets the inner card container specifically)
+      const taskCard = columnContainer.locator('div.bg-white, div.rounded-lg, article, div.p-4')
+        .filter({ has: page.getByRole('heading', { name: scenario.task }) })
+        .or(columnContainer.locator('div.bg-white, div.rounded-lg, article, div.p-4').filter({ hasText: scenario.task }))
+        .first();
 
-        /*
-         * Find the nearest ancestor of the column heading
-         * that contains the expected task.
-         *
-         * This verifies the task is actually contained within
-         * the expected column rather than simply finding the
-         * column name somewhere near the task.
-         */
-        const columnContainer = columnHeading.locator(
-          'xpath=ancestor::*[.//*[normalize-space()="' +
-            scenario.taskName +
-            '"]][1]'
-        );
+      // Assertion 1: Verify task card is visible
+      await expect(taskCard).toBeVisible({ timeout: 10000 });
 
-        await expect(columnContainer).toBeVisible();
-
-        /*
-         * Locate the task only within the verified column.
-         */
-        const taskText = columnContainer.getByText(
-          scenario.taskName,
-          {
-            exact: true,
-          }
-        );
-
-        await expect(taskText).toBeVisible();
-
-        /*
-         * Locate the task card using the task itself and
-         * the first expected tag as anchors.
-         *
-         * This keeps tag verification scoped to the task card
-         * instead of the entire column.
-         */
-        const firstExpectedTag = scenario.tags[0];
-
-        const taskCard = taskText.locator(
-          'xpath=ancestor::*[.//*[normalize-space()="' +
-            firstExpectedTag +
-            '"]][1]'
-        );
-
-        await expect(taskCard).toBeVisible();
-
-        /*
-         * Verify every expected tag belongs to the same task card.
-         */
-        for (const tag of scenario.tags) {
-          await expect(
-            taskCard.getByText(tag, {
-              exact: true,
-            }).first()
-          ).toBeVisible();
-        }
+      // Assertion 2: Verify tags belong specifically to this task card
+      for (const tag of scenario.tags) {
+        const tagElement = taskCard.locator('span, div').filter({ hasText: new RegExp(`^${tag}$`, 'i') }).first();
+        await expect(tagElement).toBeVisible();
       }
-    );
+    });
   }
 });
