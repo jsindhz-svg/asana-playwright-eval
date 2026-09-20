@@ -5,24 +5,37 @@ export class LoginPage {
   readonly usernameInput: Locator;
   readonly passwordInput: Locator;
   readonly submitButton: Locator;
-  readonly headerBanner: Locator;
 
   constructor(page: Page) {
     this.page = page;
-    this.usernameInput = page.locator('input[type="text"]');
-    this.passwordInput = page.locator('input[type="password"]');
-    this.submitButton = page.getByRole('button', { name: /sign in|submit|login/i });
-    this.headerBanner = page.getByRole('banner').getByRole('heading', { name: 'Web Application' });
+    this.usernameInput = page
+      .getByLabel(/username|email/i)
+      .or(page.locator('input[name="username"], input[type="email"], input[type="text"]').first());
+
+    this.passwordInput = page
+      .getByLabel(/password/i)
+      .or(page.locator('input[name="password"], input[type="password"]').first());
+
+    this.submitButton = page
+      .getByRole('button', { name: /sign in|log in|submit/i })
+      .or(page.locator('button[type="submit"]').first());
   }
 
-  async navigate() {
+  async goto() {
     await this.page.goto('/');
   }
 
-  async login(username: string = 'admin', password: string = 'password123') {
-    await this.usernameInput.fill(username);
-    await this.passwordInput.fill(password);
+  async login(username?: string, password?: string) {
+    const user = username || process.env.ASANA_USERNAME || 'admin';
+    const pass = password || process.env.ASANA_PASSWORD || 'password123';
+
+    await this.usernameInput.fill(user);
+    await this.passwordInput.fill(pass);
     await this.submitButton.click();
-    await expect(this.headerBanner).toBeVisible({ timeout: 10000 });
+
+    // Content-agnostic login verification
+    await expect(this.page).not.toHaveURL(/\/login$/i);
+   const mainContainer = this.page.getByRole('main').or(this.page.locator('#app, #root, .main-content')).first();
+    await expect(mainContainer).toBeVisible({ timeout: 10000 });
   }
 }

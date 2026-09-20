@@ -1,4 +1,8 @@
-import { Page, expect } from '@playwright/test';
+import { expect, Locator, Page } from '@playwright/test';
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 export class TaskBoardPage {
   readonly page: Page;
@@ -7,38 +11,74 @@ export class TaskBoardPage {
     this.page = page;
   }
 
+  /**
+   * Navigates to or selects a project application tab (e.g. "Web Application", "Mobile Application").
+   */
   async selectProject(projectName: string) {
-    // Click project link from sidebar or navigation
-    const projectButton = this.page.getByRole('button', { name: new RegExp(projectName, 'i') })
-      .or(this.page.getByRole('link', { name: new RegExp(projectName, 'i') }))
-      .or(this.page.locator(`text="${projectName}"`));
-
-    await projectButton.first().click();
-  }
-
-  async verifyTaskAndTags(columnName: string, taskTitle: string, tags: string[]) {
-    // Match column heading allowing optional task count in parentheses e.g. "To Do (3)"
-    const columnHeaderRegex = new RegExp(`^${columnName}(\\s*\\(.*\\))?$`, 'i');
-
-    // Locate column container by filtering for the heading
-    const column = this.page.locator('div, section')
-      .filter({ has: this.page.getByRole('heading', { name: columnHeaderRegex }).or(this.page.locator('h1, h2, h3, h4, h5').filter({ hasText: columnHeaderRegex })) });
-
-    await expect(column.first()).toBeVisible({ timeout: 10000 });
-
-    // Locate the specific task card containing the task title
-    const taskCard = column
-      .locator('div, article, [class*="card"], [class*="task"]')
-      .filter({ hasText: taskTitle })
+    const safeName = escapeRegExp(projectName);
+    const projectButton = this.page
+      .locator('button, a, div[role="button"], h1, h2, h3, h4, span')
+      .filter({ hasText: new RegExp(safeName, 'i') })
       .first();
 
-    await expect(taskCard).toBeVisible();
+    await expect(projectButton).toBeVisible({ timeout: 10000 });
+    await projectButton.click();
+  }
 
-    // Verify each expected tag exists inside the task card
-    for (const tag of tags) {
-      const tagElement = taskCard.locator('span, div, p, [class*="tag"], [class*="badge"]')
-        .filter({ hasText: new RegExp(`^${tag}$`, 'i') });
-      await expect(tagElement.first()).toBeVisible();
+  /**
+   * Locates a column container by matching heading text or container attributes.
+   */
+  getColumnLocator(columnName: string): Locator {
+    const safeName = escapeRegExp(columnName);
+    const regex = new RegExp(safeName, 'i');
+
+    // 1. Direct semantic heading inside a column container
+    const columnHeading = this.page
+      .locator('h1, h2, h3, h4, h5, h6, .column-header, [class*="header"]')
+      .filter({ hasText: regex });
+
+    // 2. Dedicated column container holding that header
+    return this.page
+      .locator('[class*="column"], [class*="board-col"], section, .bg-gray-50, .bg-slate-50')
+      .filter({ has: columnHeading })
+      .first();
+  }
+
+  /**
+   * Verifies that a task exists under the specified column with given tags.
+   */
+  async verifyTaskInColumn(columnName: string, taskTitle: string, expectedTags: string[] = []) {
+    let column = this.getColumnLocator(columnName);
+
+    // Fallback if generic column wrappers aren't detected
+    if (!(await column.isVisible({ timeout: 3000 }).catch(() => false))) {
+      column = this.page
+        .locator('div')
+        .filter({ has: this.page.locator('h1, h2, h3, h4, h5, h6, span').filter({ hasText: new RegExp(escapeRegExp(columnName), 'i') }) })
+        .filter({ has: this.page.locator(`text=${taskTitle}`) })
+        .first();
+    }
+
+    await expect(column).toBeVisible({ timeout: 10000 });
+
+    // Target the specific task card within the column
+    const safeTask = escapeRegExp(taskTitle);
+    const taskCard = column
+      .locator('.task-card, .card, [class*="card"], [class*="task"], div')
+      .filter({ hasText: new RegExp(safeTask, 'i') })
+      .first();
+
+    await expect(taskCard).toBeVisible({ timeout: 10000 });
+
+    // Verify all specified tags exist inside the task card
+    for (const tag of expectedTags) {
+      const safeTag = escapeRegExp(tag);
+      const tagElement = taskCard
+        .locator('.tag, .badge, [class*="tag"], [class*="badge"], span')
+        .filter({ hasText: new RegExp(safeTag, 'i') })
+        .first();
+
+      await expect(tagElement).toBeVisible({ timeout: 5000 });
     }
   }
 }

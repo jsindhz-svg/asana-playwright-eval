@@ -3,23 +3,26 @@ import { LoginPage } from '../pages/LoginPage';
 import { TaskBoardPage } from '../pages/TaskBoardPage';
 import testCases from './data/testCases.json';
 
-test.describe('Asana Task Verification - Data Driven Suite', () => {
+test.describe('Asana Task Board Verification', () => {
+  let loginPage: LoginPage;
+  let taskBoardPage: TaskBoardPage;
 
   test.beforeEach(async ({ page }) => {
-    const loginPage = new LoginPage(page);
-    await loginPage.navigate();
+    loginPage = new LoginPage(page);
+    taskBoardPage = new TaskBoardPage(page);
+
+    await loginPage.goto();
     await loginPage.login();
   });
 
-  for (const scenario of testCases) {
-    test(`Test Case ${scenario.id}: Verify "${scenario.task}" under ${scenario.project}`, async ({ page }) => {
-      const boardPage = new TaskBoardPage(page);
-
-      // 1. Switch to project view
-      await boardPage.selectProject(scenario.project);
-
-      // 2. Verify task existence and associated tags within its column
-      await boardPage.verifyTaskAndTags(scenario.column, scenario.task, scenario.tags);
+  for (const testCase of testCases) {
+    test(`[Case ${testCase.id}] Verify "${testCase.task}" in "${testCase.column}" under "${testCase.project}"`, async () => {
+      await taskBoardPage.selectProject(testCase.project);
+      await taskBoardPage.verifyTaskInColumn(
+        testCase.column,
+        testCase.task,
+        testCase.tags
+      );
     });
   }
 });
