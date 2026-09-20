@@ -1,7 +1,7 @@
-import { expect, Locator, Page } from '@playwright/test';
+import { Page, Locator, expect } from '@playwright/test';
 
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function escapeRegExp(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 export class TaskBoardPage {
@@ -11,70 +11,69 @@ export class TaskBoardPage {
     this.page = page;
   }
 
+  /**
+   * Navigates to or selects a project tab/nav item by name (e.g., "Web Application", "Mobile Application").
+   */
   async selectProject(projectName: string) {
-    const safeName = escapeRegExp(projectName);
-    const projectButton = this.page
-      .locator('button, a, div[role="button"], h1, h2, h3, h4, span')
-      .filter({ hasText: new RegExp(safeName, 'i') })
+    const projectTab = this.page
+      .locator('button, a, div, h1, h2, h3, [role="tab"], [role="button"]')
+      .filter({ hasText: new RegExp(`^\\s*${escapeRegExp(projectName)}\\s*$`, 'i') })
       .first();
 
-    await expect(projectButton).toBeVisible({ timeout: 10000 });
-    await projectButton.click();
+    await projectTab.click();
   }
 
+  /**
+   * Locates a column container by searching for its header text.
+   */
   getColumnLocator(columnName: string): Locator {
-    const safeName = escapeRegExp(columnName);
-    const headerRegex = new RegExp(`^\\s*${safeName}(\\s*\\(\\d+\\))?\\s*$`, 'i');
-
-    const columnHeading = this.page
-      .locator('h1, h2, h3, h4, h5, h6, .column-header, [class*="header"]')
-      .filter({ hasText: headerRegex });
-
     return this.page
-      .locator('section, article, [class*="board-col"], [class*="column"]:not([class*="wrapper"]):not([class*="container"])')
-      .filter({ has: columnHeading })
+      .locator('div, section, main, [role="region"]')
+      .filter({
+        has: this.page
+          .getByRole('heading', { name: new RegExp(columnName, 'i') })
+          .or(this.page.locator('h1, h2, h3, h4, h5, h6, span, div').getByText(new RegExp(`^\\s*${escapeRegExp(columnName)}\\s*$`, 'i'))),
+      })
       .first();
   }
 
-  async verifyTaskInColumn(columnName: string, taskTitle: string, expectedTags: string[] = []) {
-    let column = this.getColumnLocator(columnName);
+  /**
+   * Locates a task card inside a specific column by matching its text content.
+   */
+  getTaskCardLocator(columnName: string, taskName: string): Locator {
+    const column = this.getColumnLocator(columnName);
 
-    if (!(await column.isVisible({ timeout: 3000 }).catch(() => false))) {
-      const safeCol = escapeRegExp(columnName);
-      const safeTask = escapeRegExp(taskTitle);
-      column = this.page
-        .locator('div, section')
-        .filter({ has: this.page.locator('h1, h2, h3, h4, h5, h6, span').filter({ hasText: new RegExp(safeCol, 'i') }) })
-        .filter({ has: this.page.locator('div, span, p, h3, h4').filter({ hasText: new RegExp(safeTask, 'i') }) })
-        .first();
-    }
+    return column
+      .locator('div, article, li, [role="listitem"]')
+      .filter({ hasText: new RegExp(escapeRegExp(taskName), 'i') })
+      .last();
+  }
 
-    await expect(column).toBeVisible({ timeout: 10000 });
+  /**
+   * Verifies that a task exists within a specified column and displays all expected tags.
+   */
+  async verifyTaskInColumn(columnName: string, taskName: string, expectedTags: string[]) {
+    const taskCard = this.getTaskCardLocator(columnName, taskName);
 
-    const safeTask = escapeRegExp(taskTitle);
-    
-    // Pinpoint exact task heading element using strict anchoring
-    const taskHeading = column
-      .locator('h1, h2, h3, h4, h5, h6, p, span, div')
-      .filter({ hasText: new RegExp(`^\\s*${safeTask}\\s*$`, 'i') })
-      .first();
-
-    await expect(taskHeading).toBeVisible({ timeout: 10000 });
-
-    // Target the closest containing ancestor element bottom-up to prevent leaking into outer list containers
-    const taskCard = taskHeading
-      .locator('xpath=ancestor-or-self::*[contains(@class, "card") or contains(@class, "task") or self::article or self::div][1]');
-
+    // Assert the task card itself is visible
     await expect(taskCard).toBeVisible({ timeout: 10000 });
 
+    // Verify each expected tag is visible within the task card
     for (const tag of expectedTags) {
-      const safeTag = escapeRegExp(tag);
-      const tagElement = taskCard
-        .locator('.tag, .badge, [class*="tag"], [class*="badge"], span, div')
-        .filter({ hasText: new RegExp(`^\\s*${safeTag}\\s*$`, 'i') })
+      const tagLocator = taskCard
+        .locator('span, div, p, badge, [class*="tag"], [class*="badge"]')
+        .getByText(new RegExp(escapeRegExp(tag), 'i'))
         .first();
 
-      await expect(tagElement).toBeVisible({ timeout: 5000 });
+      await expect(tagLocator).toBeVisible({ timeout: 5000 });
     }
+  }
+
+  /**
+   * Clicks on a task card.
+   */
+  async clickTask(columnName: string, taskName: string) {
+    const taskCard = this.getTaskCardLocator(columnName, taskName);
+    await taskCard.click();
   }
 }

@@ -27,7 +27,6 @@ export class LoginPage {
     await this.passwordInput.fill(pass);
     await this.submitButton.click();
 
-    // Decoupled authentication state check
     await expect(this.page).not.toHaveURL(/\/login$/i);
     await expect(this.mainContainer).toBeVisible({ timeout: 10000 });
   }
