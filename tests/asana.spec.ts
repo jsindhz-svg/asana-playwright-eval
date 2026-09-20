@@ -13,7 +13,7 @@ test.describe('Asana Task Board Verification', () => {
 
     await test.step('login to the application', async () => {
       await loginPage.goto();
-      await loginPage.login();
+      await loginPage.login("admin", "password123");
     });
   });
 

@@ -1,4 +1,9 @@
+import { createHash } from 'crypto';
 import { expect, Locator, Page } from '@playwright/test';
+
+function hashValue(value: string): string {
+  return createHash('sha256').update(value).digest('hex');
+}
 
 function getCredential(name: string, providedValue?: string): string {
   const value = providedValue ?? process.env[name];
@@ -11,6 +16,29 @@ function getCredential(name: string, providedValue?: string): string {
   }
 
   return value;
+}
+
+function getRuntimeSecret(name: string, providedValue?: string): string {
+  const value = providedValue ?? process.env[name];
+
+  if (!value) {
+    throw new Error(
+      `Missing runtime secret for ${name}. Provide it securely at execution time via environment injection or pass it directly to login().`
+    );
+  }
+
+  return value;
+}
+
+function getPasswordValue(password?: string): string {
+  const rawPassword = getRuntimeSecret('ASANA_PASSWORD', password);
+  const expectedHash = process.env.ASANA_PASSWORD_HASH;
+
+  if (expectedHash && hashValue(rawPassword) !== expectedHash) {
+    throw new Error('Provided password does not match the configured ASANA_PASSWORD_HASH value.');
+  }
+
+  return rawPassword;
 }
 
 export class LoginPage {
@@ -34,8 +62,8 @@ export class LoginPage {
 
   async login(username?: string, password?: string) {
     const user = getCredential('ASANA_USERNAME', username);
-    const pass = getCredential('ASANA_PASSWORD', password);
-
+    const pass = getPasswordValue(password);
+    
     await this.usernameInput.fill(user);
     await this.passwordInput.fill(pass);
     await this.submitButton.click();
