@@ -2,7 +2,6 @@
   "name": "asana-playwright-eval",
   "version": "1.0.0",
   "description": "Data-driven Playwright test suite for the Asana demo application",
-  
   "scripts": {
     "test": "playwright test",
     "test:headed": "playwright test --headed",
@@ -19,6 +18,7 @@
   "type": "commonjs",
   "devDependencies": {
     "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.2",
     "typescript": "^7.0.2"
   }
 }

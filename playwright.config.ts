@@ -19,6 +19,8 @@ export default defineConfig({
 
   use: {
     baseURL: 'https://create-asana-like-pr-39y5.bolt.host/',
+    // Bypass SSL/TLS certificate verification errors
+    ignoreHTTPSErrors: true,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
