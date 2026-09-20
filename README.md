@@ -1,38 +1,72 @@
-# Asana Playwright Test Evaluation
+# Asana Playwright Test Suite
 
-A data-driven end-to-end test suite built with **Playwright and TypeScript** to validate task management workflows in the Asana-like demo application.
+Automated end-to-end test suite using **[Playwright](https://playwright.dev/)** and **TypeScript** to verify task card details and tag associations on the Asana demo application.
 
-The suite covers all six required scenarios across the **Web Application** and **Mobile Application** projects, validating project, task, column, and tag information.
+## Architecture
 
-## Demo Video
+* **Page Object Model (POM):** Test logic is decoupled from page layout and selectors.
 
-[Watch the 2-3 minute test execution and code walkthrough](INSERT_YOUR_LOOM_OR_VIDEO_LINK_HERE)
+  * `pages/LoginPage.ts`: Encapsulates authentication and initial landing navigation.
+  * `pages/TaskBoardPage.ts`: Encapsulates project view switching, column-scoped task identification, and tag assertion logic.
 
-## Tech Stack
+* **Data-Driven Execution:** Test cases are driven dynamically via `tests/data/testCases.json`.
 
-* Playwright
-* TypeScript
-* Node.js
-* JSON-based test data
-* Playwright HTML Reporter
-
-## Project Structure
+## Directory Structure
 
 ```text
-.
+asana-playwright-eval/
+├── pages/
+│   ├── LoginPage.ts
+│   └── TaskBoardPage.ts
 ├── tests/
 │   ├── data/
 │   │   └── testCases.json
 │   └── asana.spec.ts
-├── playwright.config.ts
-├── tsconfig.json
 ├── package.json
-└── README.md
+├── playwright.config.ts
+└── tsconfig.json
+```
+
+## Setup & Execution
+
+### Prerequisites
+
+* Node.js 18+ installed
+* npm installed
+
+### Installation
+
+Install project dependencies:
+
+```bash
+npm install
+```
+
+Install Playwright browsers and required dependencies:
+
+```bash
+npx playwright install --with-deps
+```
+
+### Run Tests
+
+Execute the automated test suite:
+
+```bash
+npm test
+```
+
+### TypeScript Type Check
+
+Perform a TypeScript type check without generating JavaScript files:
+
+```bash
+npx tsc --noEmit
 ```
 
 ## Test Coverage
 
-The test suite validates the following scenarios:
+The suite validates all six required scenarios:
 
 | ID  | Project            | Task                          | Column      | Tags                   |
 | --- | ------------------ | ----------------------------- | ----------- | ---------------------- |
@@ -43,7 +77,7 @@ The test suite validates the following scenarios:
 | TC5 | Mobile Application | Offline mode                  | In Progress | Feature, High Priority |
 | TC6 | Mobile Application | App icon design               | Done        | Design                 |
 
-Each scenario verifies:
+Each test verifies:
 
 * Successful authentication
 * Navigation to the expected project
@@ -51,13 +85,17 @@ Each scenario verifies:
 * Presence of the expected task within that column
 * Presence of every expected tag associated with the task
 
-## Data-Driven Design
+## Data-Driven Testing
 
-Test scenarios are maintained separately in `tests/data/testCases.json`.
+Test scenarios are maintained separately in:
 
-The Playwright test implementation dynamically generates a test for each scenario in the JSON data. This keeps the test logic reusable and minimizes duplication.
+```text
+tests/data/testCases.json
+```
 
-To add another scenario, a new test-data object can be added to `tests/data/testCases.json` without duplicating the test implementation.
+The Playwright test dynamically generates a test for each scenario in the JSON data. This keeps the test implementation reusable and minimizes duplication.
+
+Adding another scenario only requires adding a new data object to `testCases.json`; the test implementation does not need to be duplicated.
 
 Example:
 
@@ -71,42 +109,40 @@ Example:
 }
 ```
 
-## Prerequisites
+## Authentication
 
-* Node.js installed
-* npm installed
+Authentication is handled through the `LoginPage` Page Object.
 
-## Installation
+Each test starts from a clean browser page, performs the login flow, and verifies that the expected application dashboard is loaded before continuing with task validation.
 
-Clone the repository and install dependencies:
+## Validation Strategy
 
-```bash
-npm install
-```
+The test suite uses a layered validation approach:
 
-Install the Playwright browsers:
+1. Select the required project.
+2. Identify the expected board column.
+3. Locate the expected task within that column.
+4. Scope tag validation specifically to the identified task card.
+5. Verify every expected tag from the test data.
 
-```bash
-npx playwright install
-```
+This ensures that tags are validated against the correct task rather than simply searching for them elsewhere on the page.
 
-## Running the Tests
+## Playwright Configuration
 
-Run the complete test suite:
+The test suite is configured with:
 
-```bash
-npm test
-```
-
-Run tests with the browser visible:
-
-```bash
-npm run test:headed
-```
+* Chromium browser execution
+* HTML test reporting
+* Failure screenshots
+* Failure video recordings
+* Failure traces
+* Configurable test timeouts
+* CI-specific retries
+* CI worker configuration
 
 ## Test Reporting
 
-An HTML report is generated after the test run.
+After execution, Playwright generates an HTML report.
 
 To open the report:
 
@@ -114,37 +150,14 @@ To open the report:
 npm run test:report
 ```
 
-For failed tests, Playwright is configured to retain:
+For failed tests, Playwright retains screenshots, videos, and execution traces to support debugging and failure investigation.
 
-* Screenshots
-* Video recordings
-* Execution traces
 
-These artifacts can be used to investigate failures and reproduce issues efficiently.
+## Tech Stack
 
-## Playwright Configuration
-
-The Playwright configuration includes:
-
-* Configured application `baseURL`
-* HTML reporting
-* Failure screenshots
-* Failure video
-* Failure traces
-* Test timeout configuration
-* CI-specific retries
-* Chromium test project
-
-## Authentication
-
-The test suite automates login using the credentials provided for the demo application.
-
-Authentication is handled in a shared `beforeEach` hook so that each scenario starts from an authenticated application state while keeping the individual tests focused on their specific validation.
-
-## Maintainability
-
-The test suite is designed to keep test data and test logic separate:
-
-* `tests/data/testCases.json` contains scenario-specific data.
-* `tests/asana.spec.ts` contains reusable automation logic.
-* `playwright.config.ts` contains test execution and reporting configuration.
+* **Playwright**
+* **TypeScript**
+* **Node.js**
+* **JSON**
+* **Page Object Model**
+* **Playwright HTML Reporter**
