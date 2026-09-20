@@ -11,18 +11,25 @@ test.describe('Asana Task Board Verification', () => {
     loginPage = new LoginPage(page);
     taskBoardPage = new TaskBoardPage(page);
 
-    await loginPage.goto();
-    await loginPage.login();
+    await test.step('login to the application', async () => {
+      await loginPage.goto();
+      await loginPage.login();
+    });
   });
 
   for (const testCase of testCases) {
     test(`[Case ${testCase.id}] Verify "${testCase.task}" in "${testCase.column}" under "${testCase.project}"`, async () => {
-      await taskBoardPage.selectProject(testCase.project);
-      await taskBoardPage.verifyTaskInColumn(
-        testCase.column,
-        testCase.task,
-        testCase.tags
-      );
+      await test.step(`select project ${testCase.project}`, async () => {
+        await taskBoardPage.selectProject(testCase.project);
+      });
+
+      await test.step(`verify task ${testCase.task} in ${testCase.column}`, async () => {
+        await taskBoardPage.verifyTaskInColumn(
+          testCase.column,
+          testCase.task,
+          testCase.tags
+        );
+      });
     });
   }
 });
