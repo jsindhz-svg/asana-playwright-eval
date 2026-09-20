@@ -22,9 +22,6 @@ export class TaskBoardPage {
     await projectButton.click();
   }
 
-  /**
-   * Tightly scopes the specific column container by matching the exact column header.
-   */
   getColumnLocator(columnName: string): Locator {
     const safeName = escapeRegExp(columnName);
     const headerRegex = new RegExp(`^\\s*${safeName}(\\s*\\(\\d+\\))?\\s*$`, 'i');
@@ -33,7 +30,6 @@ export class TaskBoardPage {
       .locator('h1, h2, h3, h4, h5, h6, .column-header, [class*="header"]')
       .filter({ hasText: headerRegex });
 
-    // Targets the immediate column block without matching outer wrappers like "board-columns"
     return this.page
       .locator('section, article, [class*="board-col"], [class*="column"]:not([class*="wrapper"]):not([class*="container"])')
       .filter({ has: columnHeading })
@@ -43,7 +39,6 @@ export class TaskBoardPage {
   async verifyTaskInColumn(columnName: string, taskTitle: string, expectedTags: string[] = []) {
     let column = this.getColumnLocator(columnName);
 
-    // Strict scoped fallback matching column header + task card together
     if (!(await column.isVisible({ timeout: 3000 }).catch(() => false))) {
       const safeCol = escapeRegExp(columnName);
       const safeTask = escapeRegExp(taskTitle);
@@ -57,9 +52,19 @@ export class TaskBoardPage {
     await expect(column).toBeVisible({ timeout: 10000 });
 
     const safeTask = escapeRegExp(taskTitle);
+    
+    // Locate the element directly containing the task title text
+    const taskHeading = column
+      .locator('h1, h2, h3, h4, h5, h6, p, span, div')
+      .filter({ hasText: new RegExp(`^\\s*${safeTask}\\s*$`, 'i') })
+      .first();
+
+    await expect(taskHeading).toBeVisible({ timeout: 10000 });
+
+    // Locate the enclosing card container by targeting the parent/container block of the task heading
     const taskCard = column
-      .locator('.task-card, .card, [class*="card"], [class*="task"], div')
-      .filter({ hasText: new RegExp(safeTask, 'i') })
+      .locator('div, article, section, [class*="card"], [class*="task"]')
+      .filter({ has: taskHeading })
       .first();
 
     await expect(taskCard).toBeVisible({ timeout: 10000 });
@@ -67,7 +72,7 @@ export class TaskBoardPage {
     for (const tag of expectedTags) {
       const safeTag = escapeRegExp(tag);
       const tagElement = taskCard
-        .locator('.tag, .badge, [class*="tag"], [class*="badge"], span')
+        .locator('.tag, .badge, [class*="tag"], [class*="badge"], span, div')
         .filter({ hasText: new RegExp(`^\\s*${safeTag}\\s*$`, 'i') })
         .first();
 
