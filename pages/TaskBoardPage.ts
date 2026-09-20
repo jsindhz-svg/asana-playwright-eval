@@ -20,13 +20,15 @@ export class TaskBoardPage {
   async selectProject(projectName: string) {
     const escapedName = escapeRegExp(projectName);
     const projectTab = this.page
-      .locator('button, a, div, h1, h2, h3, [role="tab"], [role="button"]')
+      .locator('[role="tab"], [role="button"], button, a')
       .filter({
         hasText: new RegExp(`^\\s*${escapedName}\\s*$`, 'i'),
       })
       .first();
 
+    await expect(projectTab).toBeVisible({ timeout: 15000 });
     await projectTab.click();
+    await this.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => undefined);
   }
 
   /**
@@ -35,19 +37,17 @@ export class TaskBoardPage {
    */
   getColumnLocator(columnName: string): Locator {
     const escapedName = escapeRegExp(columnName);
-    // Flexible regex allows optional count badges after column name: "To Do", "To Do (2)", "To Do 2"
     const headingRegex = new RegExp(`^\\s*${escapedName}\\b`, 'i');
 
     return this.page
-      .locator('section, article, [class*="column"], [class*="col"], div')
+      .locator('section, article, [data-testid*="column"], [class*="column"], [class*="col"], div')
       .filter({
         has: this.page
-          .locator('h1, h2, h3, h4, h5, h6, span, div, header')
+          .locator('h1, h2, h3, h4, h5, h6, header, [role="heading"], span, div')
           .filter({ hasText: headingRegex }),
       })
       .filter({
-        // Exclude broad layout containers that hold all columns together
-        hasNot: this.page.locator('[class*="board"], [class*="grid"], [class*="columns"], main'),
+        hasNot: this.page.locator('[data-testid*="board"], [class*="board"], [class*="grid"], [class*="columns"], main'),
       })
       .first();
   }
@@ -59,7 +59,7 @@ export class TaskBoardPage {
     const column = this.getColumnLocator(columnName);
 
     return column
-      .locator('div, article, li, [role="listitem"], [class*="card"], [class*="task"]')
+      .locator('article, li, div, [role="listitem"], [data-testid*="card"], [class*="card"], [class*="task"]')
       .filter({
         hasText: new RegExp(escapeRegExp(taskName), 'i'),
       })
@@ -72,14 +72,12 @@ export class TaskBoardPage {
   async verifyTaskInColumn(columnName: string, taskName: string, expectedTags: string[]) {
     const taskCard = this.getTaskCardLocator(columnName, taskName);
 
-    // Verify the task card itself is visible inside the target column
     await expect(taskCard).toBeVisible({ timeout: 10000 });
 
-    // Verify tags inside the task card
     for (const tag of expectedTags) {
       const exactTagRegex = new RegExp(`^\\s*${escapeRegExp(tag)}\\s*$`, 'i');
       const tagLocator = taskCard
-        .locator('span, div, p, badge, [class*="tag"], [class*="badge"]')
+        .locator('span, div, p, badge, [class*="tag"], [class*="badge"], [data-testid*="tag"]')
         .filter({ hasText: exactTagRegex })
         .first();
 
@@ -92,6 +90,7 @@ export class TaskBoardPage {
    */
   async clickTask(columnName: string, taskName: string) {
     const taskCard = this.getTaskCardLocator(columnName, taskName);
+    await expect(taskCard).toBeVisible({ timeout: 10000 });
     await taskCard.click();
   }
 }
