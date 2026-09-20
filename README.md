@@ -1,163 +1,81 @@
 # Asana Playwright Test Suite
 
-Automated end-to-end test suite using **[Playwright](https://playwright.dev/)** and **TypeScript** to verify task card details and tag associations on the Asana demo application.
+Automated end-to-end test suite using Playwright and TypeScript to validate task board behavior for the Asana-like demo application.
+
+## Production-ready improvements
+
+This release branch introduces:
+
+- environment-based credentials via `.env.example`
+- stricter page object waits and selectors
+- separate smoke and regression suites
+- CI pipelines for release validation
+- lint and typecheck quality gates
+- schema validation for the JSON test data
+- multi-browser coverage for Chromium, Firefox, and WebKit
 
 ## Architecture
 
-* **Page Object Model (POM):** Test logic is decoupled from page layout and selectors.
+- `pages/LoginPage.ts`: handles authentication and app entry
+- `pages/TaskBoardPage.ts`: handles project selection, column lookup, and task/tag assertions
+- `tests/asana.spec.ts`: regression suite driven by `tests/data/testCases.json`
+- `tests/smoke.spec.ts`: fast feasibility checks for happy-path validation
+- `tests/data-validation.spec.ts`: checks the dataset structure before running regression tests
 
-  * `pages/LoginPage.ts`: Encapsulates authentication and initial landing navigation.
-  * `pages/TaskBoardPage.ts`: Encapsulates project view switching, column-scoped task identification, and tag assertion logic.
-
-* **Data-Driven Execution:** Test cases are driven dynamically via `tests/data/testCases.json`.
-
-## Directory Structure
-
-```text
-asana-playwright-eval/
-├── pages/
-│   ├── LoginPage.ts
-│   └── TaskBoardPage.ts
-├── tests/
-│   ├── data/
-│   │   └── testCases.json
-│   └── asana.spec.ts
-├── package.json
-├── playwright.config.ts
-└── tsconfig.json
-```
-
-## Setup & Execution
+## Setup
 
 ### Prerequisites
 
-* Node.js 20+ installed
-* npm installed
+- Node.js 20+
+- npm
 
-### Installation
-
-Install project dependencies:
+### Install
 
 ```bash
 npm install
-```
-
-Install Playwright browsers and required dependencies:
-
-```bash
 npx playwright install --with-deps
 ```
 
-### Run Tests
+### Environment configuration
 
-Execute the automated test suite:
+Copy `.env.example` and set real values:
+
+```bash
+cp .env.example .env
+```
+
+Then export or set:
+
+```bash
+ASANA_USERNAME=your-user
+ASANA_PASSWORD=your-password
+BASE_URL=https://create-asana-like-pr-39y5.bolt.host
+```
+
+## Running tests
 
 ```bash
 npm test
-```
-
-### TypeScript Type Check
-
-Perform a TypeScript type check without generating JavaScript files:
-
-```bash
-npx tsc --noEmit
-```
-
-## Test Coverage
-
-The suite validates all six required scenarios:
-
-| ID  | Project            | Task                          | Column      | Tags                   |
-| --- | ------------------ | ----------------------------- | ----------- | ---------------------- |
-| TC1 | Web Application    | Implement user authentication | To Do       | Feature, High Priority |
-| TC2 | Web Application    | Fix navigation bug            | To Do       | Bug                    |
-| TC3 | Web Application    | Design system updates         | In Progress | Design                 |
-| TC4 | Mobile Application | Push notification system      | To Do       | Feature                |
-| TC5 | Mobile Application | Offline mode                  | In Progress | Feature, High Priority |
-| TC6 | Mobile Application | App icon design               | Done        | Design                 |
-
-Each test verifies:
-
-* Successful authentication
-* Navigation to the expected project
-* Presence of the expected column
-* Presence of the expected task within that column
-* Presence of every expected tag associated with the task
-
-## Data-Driven Testing
-
-Test scenarios are maintained separately in:
-
-```text
-tests/data/testCases.json
-```
-
-The Playwright test dynamically generates a test for each scenario in the JSON data. This keeps the test implementation reusable and minimizes duplication.
-
-Adding another scenario only requires adding a new data object to `testCases.json`; the test implementation does not need to be duplicated.
-
-Example:
-
-```json
-{
-  "id": 7,
-  "project": "Web Application",
-  "task": "Example task",
-  "column": "To Do",
-  "tags": ["Feature"]
-}
-```
-
-## Authentication
-
-Authentication is handled through the `LoginPage` Page Object.
-
-Each test starts from a clean browser page, performs the login flow, and verifies that the expected application dashboard is loaded before continuing with task validation.
-
-## Validation Strategy
-
-The test suite uses a layered validation approach:
-
-1. Select the required project.
-2. Identify the expected board column.
-3. Locate the expected task within that column.
-4. Scope tag validation specifically to the identified task card.
-5. Verify every expected tag from the test data.
-
-This ensures that tags are validated against the correct task rather than simply searching for them elsewhere on the page.
-
-## Playwright Configuration
-
-The test suite is configured with:
-
-* Chromium browser execution
-* HTML test reporting
-* Failure screenshots
-* Failure video recordings
-* Failure traces
-* Configurable test timeouts
-* CI-specific retries
-* CI worker configuration
-
-## Test Reporting
-
-After execution, Playwright generates an HTML report.
-
-To open the report:
-
-```bash
+npm run test:smoke
+npm run test:regression
 npm run test:report
+npm run typecheck
+npm run lint
 ```
 
-For failed tests, Playwright retains screenshots, videos, and execution traces to support debugging and failure investigation.
+## CI and reporting
 
+The repo includes GitHub Actions workflows for release checks and artifact upload. Failed runs retain Playwright HTML reports, traces, screenshots, and videos for debugging.
 
-## Tech Stack
+## Test coverage
 
-* **Playwright**
-* **TypeScript**
-* **Node.js**
-* **JSON**
-* **Page Object Model**
-* **Playwright HTML Reporter**
+The regression suite validates the six core scenarios for both Web Application and Mobile Application boards, including task presence and required tag checks in the correct column.
+
+## Tech stack
+
+- Playwright
+- TypeScript
+- Node.js
+- GitHub Actions
+- ESLint
+- JSON schema validation
