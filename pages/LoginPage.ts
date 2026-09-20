@@ -35,7 +35,6 @@ export class LoginPage {
 
     // Content-agnostic login verification
     await expect(this.page).not.toHaveURL(/\/login$/i);
-   const mainContainer = this.page.getByRole('main').or(this.page.locator('#app, #root, .main-content')).first();
-    await expect(mainContainer).toBeVisible({ timeout: 10000 });
+    const mainContainer = this.page.getByRole('main').or(this.page.locator('#app, #root, .main-content')).first();    await expect(mainContainer).toBeVisible({ timeout: 10000 });
   }
 }
