@@ -31,7 +31,7 @@ asana-playwright-eval/
 
 ### Prerequisites
 
-* Node.js 18+ installed
+* Node.js 20+ installed
 * npm installed
 
 ### Installation
