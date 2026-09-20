@@ -1,5 +1,18 @@
 import { expect, Locator, Page } from '@playwright/test';
 
+function getCredential(name: string, providedValue?: string): string {
+  const value = providedValue ?? process.env[name];
+
+  if (!value) {
+    throw new Error(
+      `Missing ${name}. Set it in the environment or pass it explicitly to login().` +
+        ' See .env.example for expected values.'
+    );
+  }
+
+  return value;
+}
+
 export class LoginPage {
   readonly page: Page;
   readonly usernameInput: Locator;
@@ -20,14 +33,14 @@ export class LoginPage {
   }
 
   async login(username?: string, password?: string) {
-    const user = username || process.env.ASANA_USERNAME || 'admin';
-    const pass = password || process.env.ASANA_PASSWORD || 'password123';
+    const user = getCredential('ASANA_USERNAME', username);
+    const pass = getCredential('ASANA_PASSWORD', password);
 
     await this.usernameInput.fill(user);
     await this.passwordInput.fill(pass);
     await this.submitButton.click();
 
-    await expect(this.page).not.toHaveURL(/\/login$/i);
+    await expect(this.page).not.toHaveURL(/\/login$/i, { timeout: 15000 });
     await expect(this.mainContainer).toBeVisible({ timeout: 10000 });
   }
 }
