@@ -31,32 +31,33 @@ export class TaskBoardPage {
 
   /**
    * Locates the individual column container holding the header and its task cards.
+   * Matches titles starting with the column name (e.g., "To Do" or "To Do (2)").
    */
   getColumnLocator(columnName: string): Locator {
     const escapedName = escapeRegExp(columnName);
-    const exactHeadingRegex = new RegExp(`^\\s*${escapedName}\\s*`, 'i');
+    // Flexible regex allows optional count badges after column name: "To Do", "To Do (2)", "To Do 2"
+    const headingRegex = new RegExp(`^\\s*${escapedName}\\b`, 'i');
 
-    // Strategy 1: Look for common Kanban column container structures filtering by header text
-    const columnContainer = this.page
+    return this.page
       .locator('section, article, [class*="column"], [class*="col"], div')
       .filter({
-        has: this.page.locator('h1, h2, h3, h4, h5, h6, span, div, header').filter({ hasText: exactHeadingRegex }),
+        has: this.page
+          .locator('h1, h2, h3, h4, h5, h6, span, div, header')
+          .filter({ hasText: headingRegex }),
       })
       .filter({
-        // Prevent selecting outer layout containers that wrap all columns
+        // Exclude broad layout containers that hold all columns together
         hasNot: this.page.locator('[class*="board"], [class*="grid"], [class*="columns"], main'),
-      });
-
-    return columnContainer.first();
+      })
+      .first();
   }
 
   /**
-   * Locates a task card strictly within the target column.
+   * Locates a task card container within the specified column.
    */
   getTaskCardLocator(columnName: string, taskName: string): Locator {
     const column = this.getColumnLocator(columnName);
 
-    // Find the card element inside the column container
     return column
       .locator('div, article, li, [role="listitem"], [class*="card"], [class*="task"]')
       .filter({
@@ -74,7 +75,7 @@ export class TaskBoardPage {
     // Verify the task card itself is visible inside the target column
     await expect(taskCard).toBeVisible({ timeout: 10000 });
 
-    // Verify tags inside the task card using strict exact matches
+    // Verify tags inside the task card
     for (const tag of expectedTags) {
       const exactTagRegex = new RegExp(`^\\s*${escapeRegExp(tag)}\\s*$`, 'i');
       const tagLocator = taskCard
