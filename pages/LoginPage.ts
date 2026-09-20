@@ -1,10 +1,18 @@
-import { expect, Page } from '@playwright/test';
+import { expect, Locator, Page } from '@playwright/test';
 
 export class LoginPage {
   readonly page: Page;
+  readonly usernameInput: Locator;
+  readonly passwordInput: Locator;
+  readonly submitButton: Locator;
+  readonly mainContainer: Locator;
 
   constructor(page: Page) {
     this.page = page;
+    this.usernameInput = page.locator('input[name="username"], input[type="email"], #username');
+    this.passwordInput = page.locator('input[name="password"], input[type="password"], #password');
+    this.submitButton = page.locator('button[type="submit"], button:has-text("Sign in"), button:has-text("Log in")');
+    this.mainContainer = page.getByRole('main').or(page.locator('#app, #root, .main-content')).first();
   }
 
   async goto() {
@@ -15,16 +23,12 @@ export class LoginPage {
     const user = username || process.env.ASANA_USERNAME || 'admin';
     const pass = password || process.env.ASANA_PASSWORD || 'password123';
 
-    await this.page.fill('input[name="username"], input[type="email"], #username', user);
-    await this.page.fill('input[name="password"], input[type="password"], #password', pass);
-    await this.page.click('button[type="submit"], button:has-text("Sign in"), button:has-text("Log in")');
+    await this.usernameInput.fill(user);
+    await this.passwordInput.fill(pass);
+    await this.submitButton.click();
 
-    // Decoupled auth state check
+    // Decoupled authentication state check
     await expect(this.page).not.toHaveURL(/\/login$/i);
-    const mainContainer = this.page
-      .getByRole('main')
-      .or(this.page.locator('#app, #root, .main-content'))
-      .first();
-    await expect(mainContainer).toBeVisible({ timeout: 10000 });
+    await expect(this.mainContainer).toBeVisible({ timeout: 10000 });
   }
 }

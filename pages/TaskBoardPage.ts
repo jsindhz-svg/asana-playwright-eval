@@ -53,7 +53,7 @@ export class TaskBoardPage {
 
     const safeTask = escapeRegExp(taskTitle);
     
-    // Locate the element directly containing the task title text
+    // Pinpoint exact task heading element using strict anchoring
     const taskHeading = column
       .locator('h1, h2, h3, h4, h5, h6, p, span, div')
       .filter({ hasText: new RegExp(`^\\s*${safeTask}\\s*$`, 'i') })
@@ -61,11 +61,9 @@ export class TaskBoardPage {
 
     await expect(taskHeading).toBeVisible({ timeout: 10000 });
 
-    // Locate the enclosing card container by targeting the parent/container block of the task heading
-    const taskCard = column
-      .locator('div, article, section, [class*="card"], [class*="task"]')
-      .filter({ has: taskHeading })
-      .first();
+    // Target the closest containing ancestor element bottom-up to prevent leaking into outer list containers
+    const taskCard = taskHeading
+      .locator('xpath=ancestor-or-self::*[contains(@class, "card") or contains(@class, "task") or self::article or self::div][1]');
 
     await expect(taskCard).toBeVisible({ timeout: 10000 });
 
