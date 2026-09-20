@@ -15,14 +15,14 @@ export class TaskBoardPage {
   }
 
   /**
-   * Navigates to or selects a project tab by exact string match.
+  * Navigates to or selects a project button by its accessible name prefix.
    */
   async selectProject(projectName: string) {
     const escapedName = escapeRegExp(projectName);
     const projectTab = this.page
-      .locator('[role="tab"], [role="button"], button, a')
-      .filter({
-        hasText: new RegExp(`^\\s*${escapedName}\\s*$`, 'i'),
+      .getByRole('navigation')
+      .getByRole('button', {
+        name: new RegExp(`^\\s*${escapedName}\\b`, 'i'),
       })
       .first();
 
