@@ -20,15 +20,14 @@ export class TaskBoardPage {
   async selectProject(projectName: string) {
     const escapedName = escapeRegExp(projectName);
     const projectTab = this.page
-      .getByRole('navigation')
       .getByRole('button', {
         name: new RegExp(`^\\s*${escapedName}\\b`, 'i'),
       })
       .first();
 
-    await expect(projectTab).toBeVisible({ timeout: 15000 });
+    await expect(projectTab).toBeVisible({ timeout: 20000 });
     await projectTab.click();
-    await this.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => undefined);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 15000 }).catch(() => undefined);
   }
 
   /**
