@@ -63,7 +63,7 @@ export class LoginPage {
   async login(username?: string, password?: string) {
     const user = getCredential('ASANA_USERNAME', username);
     const pass = getPasswordValue(password);
-    
+
     await this.usernameInput.fill(user);
     await this.passwordInput.fill(pass);
     await this.submitButton.click();
